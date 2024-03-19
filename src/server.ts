@@ -7,7 +7,7 @@ const port = process.env.PORT || 3000;
 
 const app = express();
 
-app.get("/getContent", (req, res) => {
+app.get("/getContent", async (req, res) => {
   const departments = req.query?.departments?.toString();
   if (!departments) {
     console.error(
@@ -25,11 +25,11 @@ app.get("/getContent", (req, res) => {
       username: process.env.ELASTIC_USERNAME || "",
       password: process.env.ELASTIC_PASSWORD || "",
     });
-    contentFetch.getContent(departments || "");
+    await contentFetch.getContent(departments || "");
     return res.status(200).send("Departments Saved!");
   } catch (e) {
     console.error("Error @ GET '/getContent' :", e);
-    res.status(500).send("500: Internal server error");
+    return res.status(500).send("500: Internal server error");
   }
 });
 
