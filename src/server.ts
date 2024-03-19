@@ -11,12 +11,12 @@ app.get("/getContent", (req, res) => {
   const departments = req.query?.departments?.toString();
   if (!departments) {
     console.error(
-      "No departments given, use the query param 'departments' to pass in your department"
+      "Error: No departments given, use the query param 'departments' to pass in your department"
     );
     return res
       .status(400)
       .send(
-        "No departments given, use the query param 'departments' to pass in your department"
+        "400: Error, No departments given, use the query param 'departments' to pass in your department"
       );
   }
   try {
@@ -34,5 +34,5 @@ app.get("/getContent", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log("Server is running on port 3000");
+  console.log("Server is running on port", port);
 });
