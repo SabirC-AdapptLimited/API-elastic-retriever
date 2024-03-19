@@ -1,25 +1,38 @@
-import express from 'express';
-import { rssfetch } from '../lib/rssnews';
-import { bingfetch } from '../lib/bingnews';
-import dotenv from 'dotenv';
+import express from "express";
+import dotenv from "dotenv";
+import { content } from "./services/getContent";
 dotenv.config();
+
+const port = process.env.PORT || 3000;
 
 const app = express();
 
-app.get('/', (req: express.Request, res: express.Response) => {
-    res.send('I am alive');
+app.get("/getContent", (req, res) => {
+  const departments = req.query?.departments?.toString();
+  if (!departments) {
+    console.error(
+      "No departments given, use the query param 'departments' to pass in your department"
+    );
+    return res
+      .status(400)
+      .send(
+        "No departments given, use the query param 'departments' to pass in your department"
+      );
+  }
+  try {
+    const contentFetch = new content({
+      elasticURL: process.env.ELASTIC_URL || "",
+      username: process.env.ELASTIC_USERNAME || "",
+      password: process.env.ELASTIC_PASSWORD || "",
+    });
+    contentFetch.getContent(departments || "");
+    return res.status(200).send("Departments Saved!");
+  } catch (e) {
+    console.error("Error @ GET '/getContent' :", e);
+    res.status(500).send("500: Internal server error");
+  }
 });
 
-const _bingfetch = new bingfetch();
-console.log('server');
-_bingfetch.sayhello();
-//_bingfetch.startService()
-
-const _rssfetch = new rssfetch();
-console.log('server');
-_rssfetch.sayhello();
-_rssfetch.startService();
-
-app.listen(3000, () => {
-    console.log('Server is running on port 3000');
+app.listen(port, () => {
+  console.log("Server is running on port 3000");
 });
