@@ -48,7 +48,6 @@ export class content {
         process.env.CONTENT_ENDPOINT || "",
         {
           headers: {
-            "Ocp-Apim-Subscription-Key": process.env.BING_NEWS_API_KEY,
             Token: process.env.CONTENT_TOKEN,
             SinceDate: timeSinceEpoch,
             Departments: departments,
@@ -58,7 +57,12 @@ export class content {
       const content = response.data;
       await this.saveContentToElasticsearch(content);
     } catch (error) {
-      console.error("Error fetching content @ getContent:", error);
+      console.error("\nError fetching content @ getContent:\n", error);
+      if (!process.env.CONTENT_TOKEN) {
+        console.log(
+          "\nCheck that you have configured your CONTENT_TOKEN env\n"
+        );
+      }
       throw new Error();
     }
   }
