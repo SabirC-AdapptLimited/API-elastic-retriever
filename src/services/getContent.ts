@@ -64,7 +64,6 @@ export class content {
   }
 
   async saveContentToElasticsearch(content: ContentFetchDTO) {
-    return; ////////////////////////////////////////////////////////////////// remove
     try {
       const elasticSave = await this.client.bulk({ body: content as any });
       if (elasticSave.errors) {
