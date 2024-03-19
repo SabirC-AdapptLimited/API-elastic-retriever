@@ -1,0 +1,231 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MemberRoles {
+  SUPERADMIN
+  ADMIN
+  MODERATOR
+  GUEST
+}
+
+model Member {
+  id   String      @id @default(cuid())
+  role MemberRoles @default(GUEST)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Content   Content[]
+
+  @@index([userId])
+  @@index([groupId])
+}
+
+enum FileTypes {
+  IMAGE
+  DOCUMENT
+}
+
+model FileBlob {
+  id   String      @id @default(cuid())
+  fileType FileTypes @default(IMAGE)
+
+  name String
+  description String?
+  size Int
+
+  blob String @db.Text
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([groupId])
+}
+
+enum GroupStatus {
+  Active
+  Disabled
+}
+
+enum GroupType {
+  Organization
+  Dashboard
+  TradingChart
+  Feed
+  Chat
+  TEXT
+  RSS
+  API
+  HTML
+  iFrame
+  Audio
+  Video
+  Map
+  Chart
+}
+
+enum GroupMode {
+  Public
+  Inherited
+  Private
+}
+
+model Group {
+  id       String      @id @default(cuid())
+  name     String
+  status   GroupStatus @default(Active)
+  mode     GroupMode   @default(Inherited)
+  type     GroupType   @default(Dashboard)
+  imageUrl String?     @db.Text
+  config   Json?       @db.Json
+  body     String?     @db.Text
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parentGroupId String?
+  parentGroup   Group?  @relation("ParentChild", fields: [parentGroupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members      Member[]
+  content      Content[]
+  childGroups  Group[]        @relation("ParentChild")
+  subscription Subscription[]
+  branding     Branding[]
+  fileBlobs    FileBlob[]
+
+  @@index([userId])
+  @@index([parentGroupId])
+}
+
+model Subscription {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parentGroupId String
+  parentGroup   Group  @relation(fields: [parentGroupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentGroupId])
+  @@index([userId])
+}
+
+model Content {
+  id      String @id @default(cuid())
+  content String @db.Text
+
+  fileUrl String? @db.Text
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  deleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId])
+  @@index([memberId])
+}
+
+// next auth tables
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  ext_expires_in    Int?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String?        @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  group         Group[]
+  member        Member[]
+  subscription  Subscription[]
+  fileBlobs      FileBlob[]
+  enabled       Boolean        @default(true)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Branding {
+  id              String         @id @default(cuid())
+
+  PrimaryColor    String         @db.Text
+  SecondaryColor  String         @db.Text
+  BackgroundColor String         @db.Text
+  TextColor       String         @db.Text
+  LinkColor       String         @db.Text
+  Logo            String?        @db.Text
+  FontName        String?        @db.Text
+
+  parentGroupId String
+  parentGroup   Group  @relation(fields: [parentGroupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentGroupId])
+}
