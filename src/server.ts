@@ -1,6 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
 import { content } from "./services/getContent";
+import { compareSync } from "bcrypt";
+
 dotenv.config();
 
 const port = process.env.PORT || 3000;
@@ -8,6 +10,27 @@ const port = process.env.PORT || 3000;
 const app = express();
 
 app.get("/getContent", async (req, res) => {
+  const authorizationHeader = req.headers.authorization;
+
+  if (
+    !authorizationHeader ||
+    !authorizationHeader.toLowerCase().startsWith("bearer ")
+  ) {
+    console.error("Invalid API key format");
+    return res
+      .status(401)
+      .json({ error: "Unauthorized. API key is missing or invalid." });
+  }
+
+  const apiKey = authorizationHeader.slice(7);
+
+  if (!compareSync(apiKey, process.env.API_KEY_HASH || "")) {
+    console.error("Invalid API key used");
+    return res
+      .status(401)
+      .json({ error: "Unauthorized. API key is missing or invalid." });
+  }
+
   const departments = req.query?.departments?.toString();
   if (!departments) {
     console.error(
@@ -32,6 +55,8 @@ app.get("/getContent", async (req, res) => {
     return res.status(500).send("500: Internal server error");
   }
 });
+
+app.get("/healthcheck", (_req, res) => res.sendStatus(200));
 
 app.listen(port, () => {
   console.log("Server is running on port", port);
