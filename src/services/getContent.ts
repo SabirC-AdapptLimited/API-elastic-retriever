@@ -1,6 +1,9 @@
 import { Client } from "@elastic/elasticsearch";
 import axios from "axios";
 import { ContentFetchDTO } from "../models/content";
+import { readFileSync, accessSync } from "fs";
+import { v4 } from "uuid";
+import checkFileExists from "../helpers/checkFileExists";
 
 export class content {
   private client: Client;
@@ -22,6 +25,18 @@ export class content {
       throw new Error("Please config your environment variables");
     }
 
+    const certExists = checkFileExists("./ca.crt");
+
+    if (!certExists) {
+      console.log(
+        "Elastic certificate does not exist, setting rejectUnauthorized to false"
+      );
+    }
+
+    const tls = certExists
+      ? { ca: readFileSync("./ca.crt") }
+      : { rejectUnauthorized: false };
+
     this.client = new Client({
       node,
       auth: auth
@@ -30,6 +45,7 @@ export class content {
             password: password,
           }
         : undefined,
+      tls,
     });
   }
 
@@ -55,6 +71,7 @@ export class content {
         }
       );
       const content = response.data;
+
       await this.saveContentToElasticsearch(content);
     } catch (error) {
       console.error("\nError fetching content @ getContent:\n", error);
@@ -68,19 +85,26 @@ export class content {
   }
 
   async saveContentToElasticsearch(content: ContentFetchDTO) {
+    const uuid = v4();
     try {
-      const elasticSave = await this.client.bulk({ body: content as any });
-      if (elasticSave.errors) {
+      const elasticSave = await this.client.index({
+        id: uuid,
+        index: "content",
+        refresh: true,
+        document: { content },
+      });
+      const success = await this.client.exists({ index: "content", id: uuid });
+
+      if (!success) {
         throw new Error(
-          "Error saving content to Elasticsearch @ await this.client.bulk({ body }); elasticSave.errors: " +
-            elasticSave.errors
+          "Error saving content to Elasticsearch @ await this.client.bulk({ body }); elasticSave.errors"
         );
       } else {
         console.log("Content saved to Elasticsearch");
       }
     } catch (error) {
       console.error(
-        "Error saving content to Elasticsearch @ saveContentToElasticsearch():",
+        "\nError saving content to Elasticsearch @ saveContentToElasticsearch():\n",
         error
       );
       throw new Error();
