@@ -1,9 +1,9 @@
 import { Client } from "@elastic/elasticsearch";
 import axios from "axios";
 import { ContentFetchDTO } from "../models/content";
-import { readFileSync, accessSync } from "fs";
+// import { readFileSync, accessSync } from "fs";
 import { v4 } from "uuid";
-import checkFileExists from "../helpers/checkFileExists";
+// import checkFileExists from "../helpers/checkFileExists";
 
 export class content {
   private client: Client;
@@ -25,17 +25,17 @@ export class content {
       throw new Error("Please config your environment variables");
     }
 
-    const certExists = checkFileExists("./ca.crt");
+    // const certExists = checkFileExists("./ca.crt");
 
-    if (!certExists) {
-      console.log(
-        "Elastic certificate does not exist, setting rejectUnauthorized to false"
-      );
-    }
+    // if (!certExists) {
+    //   console.log(
+    //     "Elastic certificate does not exist, setting rejectUnauthorized to false"
+    //   );
+    // }
 
-    const tls = certExists
-      ? { ca: readFileSync("./ca.crt") }
-      : { rejectUnauthorized: false };
+    // const tls = certExists
+    //   ? { ca: readFileSync("./ca.crt") }
+    //   : { rejectUnauthorized: false };
 
     this.client = new Client({
       node,
@@ -45,7 +45,6 @@ export class content {
             password: password,
           }
         : undefined,
-      tls,
     });
   }
 
